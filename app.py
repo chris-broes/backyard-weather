@@ -10,6 +10,7 @@ import os
 import re
 from sqlalchemy import inspect, text
 from typing import Optional
+from risk import assess_weather_risk
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'
@@ -39,6 +40,16 @@ class Weather(db.Model):
     wind_speed = db.Column(db.Float)
     humidity = db.Column(db.Float)
     wind_direction = db.Column(db.String(20))
+    
+    def get_risk_assessment(self):
+        """Calculate and return risk assessment for this weather entry."""
+        return assess_weather_risk(
+            temperature=self.temperature,
+            description=self.description,
+            pressure=self.pressure,
+            wind_speed=self.wind_speed,
+            humidity=self.humidity
+        )
 
 class WeatherForm(FlaskForm):
     temperature_feels = SelectField(
@@ -268,4 +279,4 @@ def add():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=False)
+    app.run(debug=True)
