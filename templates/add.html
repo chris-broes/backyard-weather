@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Weather</title>
+</head>
+<body>
+    <h1>How does it feel in your backyard?</h1>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.temperature_feels.label }}<br>
+            {{ form.temperature_feels() }}
+        </p>
+        <p>
+            {{ form.vibe.label }}<br>
+            {{ form.vibe() }}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+    <a href="{{ url_for('index') }}">Back to List</a>
+</body>
+</html>
