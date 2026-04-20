@@ -268,5 +268,4 @@ def add():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    debug_mode = os.getenv('FLASK_DEBUG', '').strip().lower() in ('1', 'true', 'yes', 'on')
-    app.run(debug=debug_mode)
+    app.run(debug=False)

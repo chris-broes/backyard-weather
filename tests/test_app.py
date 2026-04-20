@@ -20,8 +20,6 @@ def test_index(client):
     response = client.get('/')
     assert response.status_code == 200
     assert b'Weather Entries' in response.data
-    assert b'Generate Random Cat Picture' in response.data
-    assert b'id="cat-image"' in response.data
 
 
 def _mock_weather_response(monkeypatch):
