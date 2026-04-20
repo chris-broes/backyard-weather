@@ -25,23 +25,16 @@ def test_index(client):
 def _mock_weather_response(monkeypatch):
     html = """
     <html><body>
-        <lib-city-current-conditions>
-            <div class="current-temp">
-                <lib-display-unit type="temperature">
-                    <span class="wu-unit wu-unit-temperature">
-                        <span class="wu-value wu-value-to">64</span>
-                    </span>
-                </lib-display-unit>
-            </div>
-            <div class="condition-icon"><p>Mostly Cloudy</p></div>
-            <div class="condition-wind small-6 medium-12 columns">SW 8 Gusts 21 ° mph</div>
-        </lib-city-current-conditions>
-        <lib-display-unit type="pressure">
-            <span class="wu-unit"><span class="wu-value wu-value-to">29.85</span></span>
-        </lib-display-unit>
-        <lib-display-unit type="humidity">
-            <span class="wu-unit"><span class="wu-value wu-value-to">56</span></span>
-        </lib-display-unit>
+        <div id="current_conditions-summary">
+            <p class="myforecast-current">Mostly Cloudy</p>
+            <p class="myforecast-current-lrg">64°F</p>
+        </div>
+        <table id="current_conditions_detail">
+            <tr><td>Humidity</td><td>56%</td></tr>
+            <tr><td>Wind Speed</td><td>8 mph</td></tr>
+            <tr><td>Wind Direction</td><td>Southwest</td></tr>
+            <tr><td>Barometer</td><td>29.85 in</td></tr>
+        </table>
     </body></html>
     """
     mock_response = Mock()
