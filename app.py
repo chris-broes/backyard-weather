@@ -1,5 +1,6 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_wtf import FlaskForm
 from wtforms import SelectField, SubmitField
 from wtforms.validators import DataRequired
@@ -9,16 +10,24 @@ from bs4 import BeautifulSoup
 import os
 import re
 import logging
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional
+from config import config_by_name
 
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.path.dirname(__file__), 'weather.db')
+app.config.from_object(config_by_name[os.environ.get('FLASK_ENV', 'development')])
+
+if not app.config.get('SECRET_KEY'):
+    raise RuntimeError(
+        "SECRET_KEY is not set. Define the SECRET_KEY environment variable "
+        "before starting the app in this environment."
+    )
+
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 MAPCLICK_URL = "https://forecast.weather.gov/MapClick.php?lat=37.7749&lon=-122.4194"
 LOCAL_WEATHER_URL = "https://www.weather.gov/wrh/localweather?zone=CAZ006"
@@ -196,37 +205,17 @@ def get_weather() -> tuple[Optional[float], Optional[str], Optional[float], Opti
     logger.error("All weather sources failed to return usable data")
     return None, None, None, None, None, None
 
-def ensure_schema():
-    inspector = inspect(db.engine)
-    if not inspector.has_table('weather'):
-        db.create_all()
-        return
-
-    columns = {col['name'] for col in inspector.get_columns('weather')}
-    updates = []
-    if 'time' not in columns:
-        updates.append("ALTER TABLE weather ADD COLUMN time TEXT")
-    if 'temperature_feels' not in columns:
-        updates.append("ALTER TABLE weather ADD COLUMN temperature_feels TEXT")
-    if 'vibe' not in columns:
-        updates.append("ALTER TABLE weather ADD COLUMN vibe TEXT")
-    if 'pressure' not in columns:
-        updates.append("ALTER TABLE weather ADD COLUMN pressure FLOAT")
-    if 'wind_speed' not in columns:
-        updates.append("ALTER TABLE weather ADD COLUMN wind_speed FLOAT")
-    if 'humidity' not in columns:
-        updates.append("ALTER TABLE weather ADD COLUMN humidity FLOAT")
-    if 'wind_direction' not in columns:
-        updates.append("ALTER TABLE weather ADD COLUMN wind_direction TEXT")
-
-    if updates:
-        with db.engine.begin() as conn:
-            for stmt in updates:
-                conn.execute(text(stmt))
+@app.route('/health')
+def health():
+    try:
+        db.session.execute(text('SELECT 1'))
+    except SQLAlchemyError as exc:
+        logger.error("Health check database probe failed: %s", exc)
+        return jsonify(status='error', database='unavailable'), 503
+    return jsonify(status='ok', database='ok')
 
 @app.route('/')
 def index():
-    ensure_schema()
     weathers = Weather.query.order_by(Weather.date.desc(), Weather.time.desc()).all()
     return render_template('index.html', weathers=weathers)
 
@@ -289,6 +278,4 @@ def add():
     return render_template('add.html', form=form)
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+    app.run(debug=app.config.get('DEBUG', False))
