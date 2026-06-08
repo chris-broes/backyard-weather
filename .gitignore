@@ -24,3 +24,5 @@ weather.db
 test.db
 instance/
 .venv/
+.DS_Store
+demo/
