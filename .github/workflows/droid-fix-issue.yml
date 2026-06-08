@@ -29,6 +29,7 @@ jobs:
     runs-on: [self-hosted, toaster1]
     env:
       ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+      REPO: ${{ github.repository }}
       # Prefer a PAT so the opened PR triggers downstream CI + review workflows.
       # Falls back to GITHUB_TOKEN (PR opens, but downstream workflows won't auto-fire).
       GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
@@ -43,8 +44,11 @@ jobs:
           command -v droid >/dev/null 2>&1 || curl -fsSL https://app.factory.ai/cli | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Acknowledge on the issue
-        run: gh issue comment "$ISSUE_NUMBER" --body "🤖 Droid (headless on **toaster1**) picked this up — investigating and will open a PR."
+      - name: Acknowledge on the issue (non-fatal)
+        run: |
+          gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
+            -f body="🤖 Droid (headless on **toaster1**) picked this up — investigating and will open a PR." \
+            || echo "::warning::could not post acknowledgement comment (continuing)"
 
       - name: Create fix branch
         run: |
@@ -84,7 +88,8 @@ jobs:
       - name: Commit, push, open PR
         run: |
           if git diff --quiet && git diff --cached --quiet; then
-            gh issue comment "$ISSUE_NUMBER" --body "⚠️ Droid produced no changes — needs a human."
+            gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
+              -f body="⚠️ Droid produced no changes — needs a human." || true
             exit 1
           fi
           git add -A
@@ -98,5 +103,6 @@ jobs:
             --body "Fixes #${ISSUE_NUMBER}
 
           Automated fix by Droid running headless on **toaster1**, following \`AGENTS.md\`. Please review.")"
-          gh issue comment "$ISSUE_NUMBER" --body "✅ Opened $PR_URL"
+          gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
+            -f body="✅ Opened $PR_URL" || echo "::warning::could not post PR link comment"
           echo "PR: $PR_URL"
