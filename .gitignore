@@ -26,3 +26,4 @@ instance/
 .venv/
 .DS_Store
 demo/
+.factory/
