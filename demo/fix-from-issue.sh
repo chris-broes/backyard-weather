@@ -35,7 +35,7 @@ while [ $# -gt 0 ]; do case "$1" in
   --title) TITLE="$2"; shift 2;;
   --model) MODEL="$2"; shift 2;;
   --auto) AUTO="$2"; shift 2;;
-  --yolo) YOLO="--skip-permissions-unsafe"; shift;;
+  --yolo) YOLO="1"; shift;;
   *) echo "unknown arg: $1" >&2; exit 2;;
 esac; done
 
@@ -75,8 +75,9 @@ EOF
 # --- Start clock, run Droid headless, stop clock, collect metrics ---
 "$PY" demo/measure.py start --arm droid --task bug-1 --branch "$HEAD_BRANCH" --model "$MODEL"
 RUN_ID="$(cat demo/results/.current 2>/dev/null || true)"   # capture before stop clears it
-echo ">> droid exec (auto=$AUTO, model=$MODEL) ..."
-SECRET_KEY=demo droid exec -f "$PROMPT_FILE" --auto "$AUTO" -m "$MODEL" --cwd "$REPO_ROOT" $YOLO
+if [ -n "$YOLO" ]; then PERM_FLAGS="--skip-permissions-unsafe"; else PERM_FLAGS="--auto $AUTO"; fi
+echo ">> droid exec ($PERM_FLAGS, model=$MODEL) ..."
+SECRET_KEY=demo droid exec -f "$PROMPT_FILE" $PERM_FLAGS -m "$MODEL" --cwd "$REPO_ROOT"
 rm -f "$PROMPT_FILE"
 "$PY" demo/measure.py stop --run "$RUN_ID"
 "$PY" demo/measure.py collect --run "$RUN_ID" --skip-audit
