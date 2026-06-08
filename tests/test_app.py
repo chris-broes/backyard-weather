@@ -56,6 +56,35 @@ def test_add_weather(client, monkeypatch):
     assert b'SW' in response.data
 
 
+def _mock_subzero_weather_response(monkeypatch):
+    html = """
+    <html><body>
+        <div id="current_conditions-summary">
+            <p class="myforecast-current">Frigid</p>
+            <p class="myforecast-current-lrg">-5°F</p>
+        </div>
+        <table id="current_conditions_detail">
+            <tr><td>Humidity</td><td>56%</td></tr>
+            <tr><td>Wind Speed</td><td>8 mph</td></tr>
+            <tr><td>Wind Direction</td><td>North</td></tr>
+            <tr><td>Barometer</td><td>29.85 in</td></tr>
+        </table>
+    </body></html>
+    """
+    mock_response = Mock()
+    mock_response.content = html.encode('utf-8')
+    mock_response.raise_for_status = Mock()
+    monkeypatch.setattr('app.requests.get', lambda *args, **kwargs: mock_response)
+
+
+def test_fetch_negative_temperature_preserves_sign(client, monkeypatch):
+    _mock_subzero_weather_response(monkeypatch)
+
+    response = client.get('/fetch', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'-5.0' in response.data
+
+
 def test_fetch_weather(client, monkeypatch):
     _mock_weather_response(monkeypatch)
 
