@@ -216,52 +216,84 @@ Output is a single table the buyer can read at a glance, plus an honest "limitat
 
 ---
 
-## 9b. Layer-2 platform vignette — incident → reviewed PR (tied to bug-1)
+## 9b. Layer-2 platform vignette — bug to merged PR, hands-off
 
-**Purpose.** The bug-1 head-to-head proves *Layer 1* (better fix at equal model).
-This vignette proves *Layer 2* — the **platform workflow** a single terminal
-agent (Claude Code / Copilot) doesn't run. Same incident, bigger surface.
+**Purpose.** *Layer 1 — feature delivery — is already proven, and that is what the
+demo rests on.* Across the feature head-to-heads — building the **risk-scoring
+core** (Phase 1) and migrating **HTML scraping → NWS JSON API** (Phase 2) — Droid
+delivered, at **equal model** and **~equal speed**, **2–2.3× the tests, +8 pts
+coverage, lint-clean**, with a **neutral reviewer catching a latent correctness bug
+the baseline would have shipped**, and did it **~6× more predictably** (see Slides
+3–5 / `demo/results`). These are the real application improvements — not the bug fix.
 
-**Framing.** On-call gets a data-quality alert: *negative temperatures are being
-stored as positive*. A terminal agent fixes the one line you point it at.
-Factory runs the whole incident.
+The seeded **bug-1** fix is deliberately *trivial* (a one-line regex): both tools
+tie on it. That tie is the point — it makes bug-1 the **trigger** for Layer 2, not
+the evidence. Layer 2 shows where Copilot and Droid diverge *after* the fix is
+written: **all the work around the fix** — triage, filing, conventions, PR, review,
+closure, comms. Copilot hands you a diff in your editor; **you** still do the rest,
+by hand, inconsistently. Droid automates that connective tissue — the same way,
+every time.
 
-**Beats (~4–6 min) and the capability each proves:**
+**The reframe to land:** bugs show up in any codebase; the *fix* was never the
+expensive part — the **friction around it is**, multiplied across every routine bug,
+every week. Droid can automate this **whole class** of routine fixes end-to-end —
+but only inside the criteria the team sets in `AGENTS.md`: what's in scope to hand
+off (e.g., localized parsing/validation/null fixes; no schema/API/auth changes),
+what every fix must satisfy (regression test first, conventions, single reviewable
+unit), and what gates it before merge (suite/lint/security green + human approval).
+Anything outside the rules escalates to a person — **an agent running *your*
+playbook, not run loose.**
 
-| # | Beat | Layer-2 capability | Executable | Assets |
+**Theme.** *"The work between the work."* One trigger in, a reviewed PR out.
+
+**The contrast in one frame:**
+
+| Step in the lifecycle | Copilot / terminal agent | Droid (platform) |
+|---|---|---|
+| Find bug + propose fix | ✅ in your editor | ✅ |
+| Reproduce + write regression test | you, manually | automatic |
+| File/triage the issue with context | you | automatic |
+| Apply repo conventions / DoD / security | you remember (or don't) | enforced via `AGENTS.md` |
+| Open a well-formed PR linked to the issue | you | automatic |
+| First-pass review + CI/security gates | you wait on a human | governed review droid + CI/CodeQL |
+| Close issue + notify stakeholders | you | on merge, automatic |
+
+**Beats (~5–7 min), each mapped to the platform capability + friction removed:**
+
+| # | Beat | Capabilities shown | Friction removed | Exec |
 |---|---|---|---|---|
-| 1 | Open the **GitHub Issue** (the bug-1 ticket) as source of truth | Integration / ticket loop | ✅ `gh` | [issue #13](https://github.com/chris-broes/backyard-weather/issues/13) |
-| 2 | **Dispatch a fleet in parallel** — Droid A: fix + regression test; Droid B: **sibling-defect sweep** for the same fragility class | Fleet / parallel / async | ✅ | `sibling-sweep` droid |
-| 3 | Droid A opens a **PR linked to the issue** (`Fixes #13`) | Ticket → PR action loop | ✅ `gh pr create` | — |
-| 4 | **`risk-app-reviewer` droid** reviews the PR; `demo/review-pr.sh` posts findings as a PR comment **and** records them in the scorecard | Reproducible specialist droid, unattended, in-pipeline | ✅ | reviewer droid + helper |
-| 5 | CI + CodeQL gate the PR; on merge the **issue auto-closes** | Governance + action loop | ✅ (push/Actions) | CI workflows |
+| 1 | A bug report lands as **GitHub Issue #13** (source of truth) | Integration intake | no copy-paste between tools | ✅ `gh` |
+| 2 | **One trigger** kicks off Droid headless (`droid exec`) — it reproduces, writes a **regression test + fix**, following `AGENTS.md` (units, SSRF, no-debug, tests-required, DoD) | Headless end-to-end execution + enforced best-practices via org context | no babysitting; conventions applied every time, not from memory | ✅ |
+| 3 | Droid opens a **well-formed PR** (summary, test plan) **linked to the issue** (`Fixes #13`) | Ticket→PR action loop | no hand-written PR / manual linking | ✅ `gh pr create` |
+| 4 | **`risk-app-reviewer` droid** auto-reviews the PR; `demo/review-pr.sh` posts findings + records them; **CI** (+ CodeQL) gate it | Governed automated review + gates, reproducible specialist droid | first-pass review is instant + consistent; humans focus on judgment | ✅ (CodeQL narrate) |
+| 5 | On merge, **issue #13 auto-closes**; stakeholders notified | Closure + comms loop | no manual status updates | ✅ (Slack/ticket narrate) |
 
-**Why it's the elegant tie-in.** bug-1 is a *parsing-robustness* defect, and the
-neutral reviewer already found sibling-class bugs (baseline's `barometricPressure`
-present-but-`null` fallback; the wind-unit default). So Droid B's sweep surfaces
-**real** issues — the "siblings found" count is a proactive-quality metric the
-single-bug fixer never produces.
+**Contrast line for the room:** *"Both tools wrote the same one-line fix — that's a
+tie. Watch what happens around it: Copilot leaves you to file the issue, write the
+PR, chase review, and update the ticket. Droid did all of that from one trigger,
+following our standards, with a governed review attached — hands-off."*
 
-**Contrast line for the room:** *"Claude Code fixed the one bug you pointed it at.
-Factory turned the report into a linked PR, a parallel sibling-defect sweep, an
-automated governed review, and a closed ticket — reproducibly, unattended, across
-surfaces."*
+**Where the bug enters.** Demo uses **GitHub Issues** (live today). Enterprise
+swaps — **Sentry alert** (intake), **Jira/Linear** (ticket), **Slack** (ChatOps
+trigger) — are the same loop on the buyer's own tools; narrate unless their
+integration is configured.
 
-**Ticket source.** Demo uses **GitHub Issues** (executable today). The enterprise
-swap is **Jira / Linear** via Factory's integrations — same loop, the buyer's own
-tracker; narrate this unless their integration is configured.
+**Optional cameo (not the lead):** Droid can also run **variant analysis** (a.k.a.
+defect-cluster sweep — the practice behind CodeQL/Project Zero) to find siblings of
+the bug. Mention only if there's time; it's a "best practice it runs," not the spine.
 
-**Honesty guardrails.** Model held constant (Opus 4.8) — this is about the
-*workflow*, not the LLM or per-line code quality. The sweep must surface real
-defects (it does). Claim the workflow a terminal agent doesn't run; don't
-overclaim per-line superiority.
+**Honesty guardrails.**
+- **Layer-1 feature delivery is the proven win** (Phases 1–2: 2–2.3× tests, +8 pts
+  coverage, caught latent bug, ~6× steadier). Lead with that.
+- **bug-1 specifically is a tie** (trivial one-line fix) — say so; that's exactly
+  why it's the Layer-2 *trigger*, not Layer-1 evidence.
+- Model held constant (**Opus 4.8**): this is about the *platform/workflow*, not the LLM.
+- Be explicit about **live vs narrated** (CodeQL on `main` only; Slack/Jira/Sentry need integrations).
+- Claim the *workflow* a terminal agent doesn't run; don't overclaim per-line code quality.
 
-**Execution depth: TBD** (decide live vs narrated for CI/CodeQL + governance closer to demo day).
+**Execution depth: TBD** (decide live `droid exec` vs scripted vs narrated closer to demo day).
 
-**Assets created for this vignette:**
-- GitHub Issue [#13](https://github.com/chris-broes/backyard-weather/issues/13) (bug-1 ticket) — the incident.
-- `.factory/droids/sibling-sweep.md` — read-only specialist that hunts same-class defects.
-- `demo/review-pr.sh` — posts the reviewer droid's findings to the PR and into the scorecard.
+**Assets (decide build later).** Keep: GitHub Issues [#13](https://github.com/chris-broes/backyard-weather/issues/13) (live) / [#14](https://github.com/chris-broes/backyard-weather/issues/14) (rehearsal), `risk-app-reviewer` droid, `demo/review-pr.sh`, `demo/reset-vignette.sh`. Likely to add: a `droid exec` automation script for the headless chain. Retired as lead: `sibling-sweep` (optional cameo only).
 
 ---
 

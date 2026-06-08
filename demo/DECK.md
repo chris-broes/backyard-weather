@@ -140,7 +140,15 @@ risk** on the other side.
 **Roadmap (this same harness, fully scoped in `demo/PROGRAM.md`):**
 - Feature phases p2–p9 (multi-location, alerts, configurable model, REST API,
   multi-tenant, Postgres migration, security hardening, bulk scoring).
-- A **seeded production bug** → live **time-to-fix** head-to-head.
+- A **seeded production bug** → the live **Layer-2 "hands-off" vignette**: bug-1 is
+  a deliberate *tie* on the one-line fix; the differentiation is the **workflow
+  around it** — issue → headless fix following our standards → linked PR → governed
+  review → auto-close (see `demo/RUNBOOK.md` §9b).
+- **Policy-driven automation of routine fixes:** the fix was never the expensive
+  part — the friction around it is. Droid automates that *whole class* of fixes
+  end-to-end, but only inside criteria the team sets in `AGENTS.md` (scope to hand
+  off, standards each fix must meet, gates before merge incl. human approval).
+  **An agent running your playbook, not run loose.**
 - Each phase advances the track, so the gap is measured **cumulatively**.
 
 > Speaker note: This is the hook to keep the engagement going — and the live
