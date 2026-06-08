@@ -99,13 +99,20 @@ jobs:
           git commit -m "fix: resolve #${ISSUE_NUMBER}
 
           Co-authored-by: factory-droid[bot] <138933559+factory-droid[bot]@users.noreply.github.com>"
-          git push -u origin "droid/issue-${ISSUE_NUMBER}"
+          git push -u origin "droid/issue-${ISSUE_NUMBER}" --force
           TITLE="$(gh issue view "$ISSUE_NUMBER" --json title -q .title)"
-          PR_URL="$(gh pr create --base main --head "droid/issue-${ISSUE_NUMBER}" \
-            --title "Fix: ${TITLE}" \
-            --body "Fixes #${ISSUE_NUMBER}
-
-          Automated fix by Droid running headless on **toaster1**, following \`AGENTS.md\`. Please review.")"
+          OWNER="${REPO%%/*}"
+          BODY="$(printf 'Fixes #%s\n\nAutomated fix by Droid running headless on toaster1, following AGENTS.md. Please review.' "$ISSUE_NUMBER")"
+          # REST create (GraphQL createPullRequest is blocked for app tokens on this repo)
+          PR_URL="$(gh api -X POST "repos/${REPO}/pulls" \
+            -f title="Fix: ${TITLE}" \
+            -f head="droid/issue-${ISSUE_NUMBER}" \
+            -f base="main" \
+            -f body="$BODY" \
+            -q .html_url 2>/dev/null)" || true
+          if [ -z "$PR_URL" ]; then
+            PR_URL="$(gh api "repos/${REPO}/pulls?head=${OWNER}:droid/issue-${ISSUE_NUMBER}&state=open" -q '.[0].html_url')"
+          fi
           gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
             -f body="✅ Opened $PR_URL" || echo "::warning::could not post PR link comment"
           echo "PR: $PR_URL"
