@@ -45,17 +45,6 @@ jobs:
           command -v droid >/dev/null 2>&1 || curl -fsSL https://app.factory.ai/cli | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: DEBUG GH_PAT capabilities
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: |
-          echo "pat empty? len=${#GH_TOKEN}"
-          echo "auth user: $(gh api user -q .login 2>&1 | head -c 120)"
-          echo "repo perms: $(gh api repos/${REPO} -q '.permissions' 2>&1 | head -c 200)"
-          echo "comment test response:"
-          gh api -X POST "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" -f body="debug perm test (will remove)" 2>&1 | head -c 400
-          echo ""
-
       - name: Acknowledge on the issue (non-fatal)
         run: |
           gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
