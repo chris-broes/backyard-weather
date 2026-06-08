@@ -49,12 +49,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          echo "len=${#GH_TOKEN} prefix=${GH_TOKEN:0:11}"
-          echo "user: $(gh api user -q .login 2>&1 | head -c 60)"
-          echo "issue READ: $(gh api repos/${REPO}/issues/${ISSUE_NUMBER} -q .title 2>&1 | head -c 80)"
-          echo "issue WRITE probe:"; gh api -X POST "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" -f body="perm probe (remove)" -q .id 2>&1 | head -c 200; echo
-          echo "pr READ: $(gh api "repos/${REPO}/pulls" -q 'length' 2>&1 | head -c 80)"
-          echo "contents WRITE probe (ref read): $(gh api repos/${REPO}/git/refs/heads/main -q .ref 2>&1 | head -c 80)"
+          echo "len=${#GH_TOKEN} prefix=${GH_TOKEN:0:7}"
+          echo "gh auth env: GITHUB_TOKEN set? ${GITHUB_TOKEN:+yes}"
+          echo "== user headers (scopes) =="
+          gh api -i user 2>&1 | grep -iE "^HTTP/|x-oauth-scopes:|x-accepted-oauth-scopes:|x-github-" | head
+          echo "== raw curl POST comment (bypass gh) =="
+          curl -sS -i -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
+            -d '{"body":"probe via curl (remove)"}' 2>&1 | grep -iE "^HTTP/|x-oauth-scopes:|x-accepted-oauth-scopes:|\"message\"" | head
 
       - name: Acknowledge on the issue (non-fatal)
         run: |
