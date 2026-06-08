@@ -1,6 +1,7 @@
 import pytest
 import os
-from app import app, db
+from bs4 import BeautifulSoup
+from app import app, db, _parse_mapclick_weather
 from unittest.mock import Mock
 
 @pytest.fixture
@@ -54,6 +55,24 @@ def test_add_weather(client, monkeypatch):
     assert b'Cool' in response.data
     assert b'Jacket' in response.data
     assert b'SW' in response.data
+
+
+def test_parse_mapclick_preserves_subzero_temperature():
+    html = """
+    <html><body>
+        <div id="current_conditions-summary">
+            <p class="myforecast-current">Snow</p>
+            <p class="myforecast-current-lrg">-4°F</p>
+        </div>
+        <table id="current_conditions_detail">
+            <tr><td>Humidity</td><td>78%</td></tr>
+            <tr><td>Barometer</td><td>30.12 in</td></tr>
+        </table>
+    </body></html>
+    """
+    soup = BeautifulSoup(html, 'html.parser')
+    temp, _desc, _pressure, _wind_speed, _humidity, _wind_dir = _parse_mapclick_weather(soup)
+    assert temp == -4.0
 
 
 def test_fetch_weather(client, monkeypatch):
