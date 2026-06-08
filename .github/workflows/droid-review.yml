@@ -1,0 +1,76 @@
+name: Droid · PR Review
+
+# Reviews pull requests with Droid (headless on toaster1) and posts the review
+# back via curl + PAT (this repo blocks app-token writes, so gh/GITHUB_TOKEN can't).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: droid-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: ${{ github.event.pull_request.draft == false && !contains(github.event.pull_request.title, '[skip-review]') }}
+    runs-on: [self-hosted, toaster1]
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Ensure Droid CLI on PATH
+        run: |
+          command -v droid >/dev/null 2>&1 || curl -fsSL https://app.factory.ai/cli | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch PR diff
+        run: |
+          curl -sS -H "Authorization: token ${GH_TOKEN}" -H "Accept: application/vnd.github.v3.diff" \
+            "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}" > "$RUNNER_TEMP/pr.diff"
+          echo "diff lines: $(wc -l < "$RUNNER_TEMP/pr.diff")"
+
+      - name: Droid reviews the PR (headless)
+        env:
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+        run: |
+          rm -f "$GITHUB_WORKSPACE/review.md"
+          {
+            echo "You are reviewing a pull request for this repository. Read the codebase as"
+            echo "needed and follow AGENTS.md. Focus on real bugs, security issues, correctness,"
+            echo "missing or weak tests, and the Definition of Done. Skip pure style nits."
+            echo "Be concise and reference file:line where you can."
+            echo ""
+            echo "Write your review to a file named review.md at the repository root with EXACTLY"
+            echo "these sections (markdown):"
+            echo "  ## 🤖 Droid Review"
+            echo "  **Summary:** <1-3 sentences>"
+            echo "  **Issues:** <short bulleted list, or 'None found'>"
+            echo "  **Verdict:** APPROVE | COMMENT | REQUEST_CHANGES"
+            echo "Do NOT modify any file other than review.md."
+            echo ""
+            echo "----- PR #${PR_NUMBER} DIFF -----"
+            cat "$RUNNER_TEMP/pr.diff"
+          } > "$RUNNER_TEMP/review-prompt.txt"
+          droid exec --auto high -m claude-opus-4-8 -f "$RUNNER_TEMP/review-prompt.txt"
+
+      - name: Post review comment
+        run: |
+          api="https://api.github.com"
+          auth=(-H "Authorization: token ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
+          if [ ! -f review.md ]; then
+            printf '## 🤖 Droid Review\n\n_Reviewer did not produce output._\n' > review.md
+          fi
+          curl -sS -X POST "${auth[@]}" "${api}/repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            -d "$(jq -Rs '{body: .}' review.md)" >/dev/null && echo "posted review on PR #${PR_NUMBER}"
