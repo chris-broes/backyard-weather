@@ -37,34 +37,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # Push uses GITHUB_TOKEN (Contents:write works); PR + comments use GH_PAT below.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use the PAT for git auth so push + PR are attributed to a real user
+          # (app/GITHUB_TOKEN actions don't trigger downstream CI/review workflows).
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Ensure Droid CLI on PATH
         run: |
           command -v droid >/dev/null 2>&1 || curl -fsSL https://app.factory.ai/cli | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: DEBUG token perms
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+      - name: Acknowledge on the issue (non-fatal)
         run: |
-          echo "len=${#GH_TOKEN} prefix=${GH_TOKEN:0:7}"
-          echo "gh auth env: GITHUB_TOKEN set? ${GITHUB_TOKEN:+yes}"
-          echo "== user headers (scopes) =="
-          gh api -i user 2>&1 | grep -iE "^HTTP/|x-oauth-scopes:|x-accepted-oauth-scopes:|x-github-" | head
-          echo "== raw curl POST comment (bypass gh) =="
-          curl -sS -i -X POST \
+          curl -sS -X POST \
             -H "Authorization: token ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
-            -d '{"body":"probe via curl (remove)"}' 2>&1 | grep -iE "^HTTP/|x-oauth-scopes:|x-accepted-oauth-scopes:|\"message\"" | head
-
-      - name: Acknowledge on the issue (non-fatal)
-        run: |
-          gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
-            -f body="🤖 Droid (headless on **toaster1**) picked this up — investigating and will open a PR." \
-            || echo "::warning::could not post acknowledgement comment (continuing)"
+            -d "$(jq -n '{body:"🤖 Droid (headless on toaster1) picked this up — investigating and will open a PR."}')" \
+            >/dev/null || echo "::warning::could not post acknowledgement comment (continuing)"
 
       - name: Create fix branch
         run: |
@@ -75,8 +64,9 @@ jobs:
 
       - name: Build prompt from the issue
         run: |
-          gh issue view "$ISSUE_NUMBER" --json title,body \
-            -q '"Issue #'"$ISSUE_NUMBER"': " + .title + "\n\n" + (.body // "")' > "$RUNNER_TEMP/issue.txt"
+          curl -sS -H "Authorization: token ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}/issues/${ISSUE_NUMBER}" \
+            | jq -r '"Issue #'"$ISSUE_NUMBER"': " + .title + "\n\n" + (.body // "")' > "$RUNNER_TEMP/issue.txt"
           {
             echo "Resolve the GitHub issue described below."
             echo ""
@@ -106,9 +96,11 @@ jobs:
 
       - name: Commit, push, open PR
         run: |
+          api="https://api.github.com"
+          auth=(-H "Authorization: token ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
           if git diff --quiet && git diff --cached --quiet; then
-            gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
-              -f body="⚠️ Droid produced no changes — needs a human." || true
+            curl -sS -X POST "${auth[@]}" "${api}/repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
+              -d "$(jq -n '{body:"⚠️ Droid produced no changes — needs a human."}')" >/dev/null || true
             exit 1
           fi
           git add -A
@@ -116,19 +108,16 @@ jobs:
 
           Co-authored-by: factory-droid[bot] <138933559+factory-droid[bot]@users.noreply.github.com>"
           git push -u origin "droid/issue-${ISSUE_NUMBER}" --force
-          TITLE="$(gh issue view "$ISSUE_NUMBER" --json title -q .title)"
           OWNER="${REPO%%/*}"
+          TITLE="$(curl -sS "${auth[@]}" "${api}/repos/${REPO}/issues/${ISSUE_NUMBER}" | jq -r '.title')"
           BODY="$(printf 'Fixes #%s\n\nAutomated fix by Droid running headless on toaster1, following AGENTS.md. Please review.' "$ISSUE_NUMBER")"
-          # REST create (GraphQL createPullRequest is blocked for app tokens on this repo)
-          PR_URL="$(gh api -X POST "repos/${REPO}/pulls" \
-            -f title="Fix: ${TITLE}" \
-            -f head="droid/issue-${ISSUE_NUMBER}" \
-            -f base="main" \
-            -f body="$BODY" \
-            -q .html_url 2>/dev/null)" || true
+          PR_RESP="$(curl -sS -X POST "${auth[@]}" "${api}/repos/${REPO}/pulls" \
+            -d "$(jq -n --arg t "Fix: $TITLE" --arg h "droid/issue-${ISSUE_NUMBER}" --arg b "main" --arg body "$BODY" \
+                 '{title:$t, head:$h, base:$b, body:$body}')")"
+          PR_URL="$(echo "$PR_RESP" | jq -r '.html_url // empty')"
           if [ -z "$PR_URL" ]; then
-            PR_URL="$(gh api "repos/${REPO}/pulls?head=${OWNER}:droid/issue-${ISSUE_NUMBER}&state=open" -q '.[0].html_url')"
+            PR_URL="$(curl -sS "${auth[@]}" "${api}/repos/${REPO}/pulls?head=${OWNER}:droid/issue-${ISSUE_NUMBER}&state=open" | jq -r '.[0].html_url // empty')"
           fi
-          gh api "repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
-            -f body="✅ Opened $PR_URL" || echo "::warning::could not post PR link comment"
+          curl -sS -X POST "${auth[@]}" "${api}/repos/${REPO}/issues/${ISSUE_NUMBER}/comments" \
+            -d "$(jq -n --arg body "✅ Opened $PR_URL" '{body:$body}')" >/dev/null || echo "::warning::could not post PR link comment"
           echo "PR: $PR_URL"
