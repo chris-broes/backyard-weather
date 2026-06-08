@@ -6,3 +6,5 @@ __pycache__/
 htmlcov/
 .pytest_cache/
 .venv/
+demo/results/runs/
+demo/results/summary*.md
