@@ -55,6 +55,27 @@ def test_add_weather(client):
     assert b'Jacket' in response.data
 
 
+def test_negative_temperature_stored_correctly(client):
+    from app import Weather
+    response = client.post('/add', data={
+        'temperature': '-5',
+        'temperature_feels': 'Cold',
+        'vibe': 'Too Cold',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    entry = Weather.query.order_by(Weather.id.desc()).first()
+    assert entry.temperature == -5.0
+
+
+def test_parse_float_negative():
+    from app import _parse_float
+    assert _parse_float("-5°F") == -5.0
+    assert _parse_float("-10.5") == -10.5
+    assert _parse_float("64°F") == 64.0
+    assert _parse_float("56%") == 56.0
+    assert _parse_float("NA") is None
+
+
 def test_fetch_weather(client, monkeypatch):
     _mock_weather_response(monkeypatch)
 
