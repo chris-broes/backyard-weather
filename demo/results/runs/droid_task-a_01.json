@@ -1,0 +1,48 @@
+{
+  "run_id": "droid_task-a_01",
+  "arm": "droid",
+  "task": "task-a",
+  "branch": "droid/task-a/run-01",
+  "base": "demo-base",
+  "operator": "chris",
+  "started_at": "2026-06-05T00:39:51.185603+00:00",
+  "ended_at": "2026-06-05T00:47:55.928862+00:00",
+  "duration_sec": 484,
+  "human_turns": 0,
+  "notes": "droid CLI",
+  "metrics": {
+    "tests_total": 19,
+    "tests_added": 16,
+    "coverage_pct": 82.15,
+    "coverage_delta": 14.36,
+    "flake8_findings": 0,
+    "bandit_total": 0,
+    "bandit_breakdown": {
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "total": 0
+    },
+    "pip_audit_vulns": null,
+    "dod_status": "full",
+    "dod_score": 1.0,
+    "dod_detail": {
+      "task": "task-a",
+      "status": "full",
+      "score": 1.0,
+      "passed": 5,
+      "total": 5,
+      "criteria": {
+        "importable_module": true,
+        "scoring_behaves": true,
+        "endpoint_or_field": true,
+        "surfaced_in_ui": true,
+        "tests_exist": true
+      }
+    },
+    "tests_per_min": 1.983,
+    "coverage_per_min": 1.78
+  },
+  "collected_at": "2026-06-05T04:56:41.400647+00:00",
+  "model": "claude-opus-4.8"
+}
