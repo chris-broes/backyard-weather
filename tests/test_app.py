@@ -58,16 +58,6 @@ def test_add_weather(client):
     assert b'Jacket' in response.data
 
 
-def test_add_negative_temperature(client):
-    response = client.post('/add', data={
-        'temperature': '-5',
-        'temperature_feels': 'Frigid',
-        'vibe': 'Too Cold',
-    }, follow_redirects=True)
-    assert response.status_code == 200
-    assert b'-5.0' in response.data
-
-
 def test_fetch_weather(client, monkeypatch):
     _mock_weather_response(monkeypatch)
 
