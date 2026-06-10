@@ -20,8 +20,10 @@ coverage.xml
 .mypy_cache
 .pytest_cache
 .hypothesis
+ledgerline.db
 weather.db
 test.db
+*.sample
 instance/
 .venv/
 .DS_Store

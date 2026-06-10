@@ -74,3 +74,41 @@ jobs:
           fi
           curl -sS -X POST "${auth[@]}" "${api}/repos/${REPO}/issues/${PR_NUMBER}/comments" \
             -d "$(jq -Rs '{body: .}' review.md)" >/dev/null && echo "posted review on PR #${PR_NUMBER}"
+
+      - name: Droid security review (headless)
+        env:
+          FACTORY_API_KEY: ${{ secrets.FACTORY_API_KEY }}
+        run: |
+          rm -f "$GITHUB_WORKSPACE/security.md"
+          {
+            echo "Perform a defensive security review of this pull request diff for this"
+            echo "repository. Apply STRIDE threat modeling and the OWASP Top 10. Trace any"
+            echo "changed data flows across input validation, database, network, and filesystem"
+            echo "boundaries. Use a two-pass approach: identify candidate issues, then validate"
+            echo "each for reachability and real impact before reporting. Report only findings"
+            echo "with a realistic impact; do not pad. Never include exploit payloads or"
+            echo "step-by-step attack instructions; describe the risk and the remediation."
+            echo ""
+            echo "Write your findings to a file named security.md at the repository root with"
+            echo "EXACTLY these sections (markdown):"
+            echo "  ## 🛡️ Droid Security Review"
+            echo "  **Scope:** <1 sentence on what was reviewed>"
+            echo "  **Findings:** a table |Severity|Location|Finding|Remediation| with rows for"
+            echo "  each validated finding, or the text 'No material findings.'"
+            echo "  **Verdict:** PASS | FINDINGS"
+            echo "Do NOT modify any file other than security.md."
+            echo ""
+            echo "----- PR #${PR_NUMBER} DIFF -----"
+            cat "$RUNNER_TEMP/pr.diff"
+          } > "$RUNNER_TEMP/security-prompt.txt"
+          droid exec --auto high -m claude-opus-4-8 -f "$RUNNER_TEMP/security-prompt.txt"
+
+      - name: Post security review comment
+        run: |
+          api="https://api.github.com"
+          auth=(-H "Authorization: token ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
+          if [ ! -f security.md ]; then
+            printf '## 🛡️ Droid Security Review\n\n_Security reviewer did not produce output._\n' > security.md
+          fi
+          curl -sS -X POST "${auth[@]}" "${api}/repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            -d "$(jq -Rs '{body: .}' security.md)" >/dev/null && echo "posted security review on PR #${PR_NUMBER}"

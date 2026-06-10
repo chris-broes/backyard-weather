@@ -1,102 +1,107 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Weather Tracker</title>
+    <title>LedgerLine — Activity</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <style>
         body {
-            font-family: sans-serif;
-            max-width: 700px;
+            font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+            max-width: 720px;
             margin: 2rem auto;
             padding: 0 1rem;
-            color: #222;
+            color: #1a2233;
+            background: #f6f8fb;
         }
-        h1 {
-            margin-bottom: 1rem;
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .brand {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .brand span { color: #2563eb; }
+        .balance-card {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: #fff;
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .balance-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.8;
+        }
+        .balance-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 0.2rem;
         }
         .btn {
             display: inline-block;
-            padding: 0.6em 1.2em;
-            background-color: #4a90d9;
+            padding: 0.55em 1.2em;
+            background-color: #2563eb;
             color: #fff;
             text-decoration: none;
-            border-radius: 6px;
-            font-size: 1rem;
-        }
-        .btn:hover {
-            background-color: #357abd;
-        }
-        .entry-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 1.5rem;
-        }
-        .entry {
-            border: 1px solid #ddd;
             border-radius: 8px;
-            padding: 0.8rem 1rem;
-            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
         }
-        .entry-header {
-            font-size: 0.85rem;
-            color: #666;
-            margin-bottom: 0.4rem;
-        }
-        .entry-sections {
+        .btn:hover { background-color: #1d4ed8; }
+        .txn-list { list-style: none; padding: 0; margin-top: 1rem; }
+        .txn {
             display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e3e8f0;
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.6rem;
         }
-        .section-label {
+        .txn-meta { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+        .txn-desc { font-weight: 600; }
+        .txn-amount { font-weight: 700; font-size: 1.05rem; }
+        .txn-amount.charge { color: #1a2233; }
+        .txn-amount.credit { color: #059669; }
+        .category-pill {
             font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #999;
-            margin-bottom: 0.2rem;
+            background: #eef2ff;
+            color: #3730a3;
+            border-radius: 999px;
+            padding: 0.15rem 0.6rem;
+            margin-left: 0.5rem;
         }
-        .measured span, .manual span {
-            display: inline-block;
-            margin-right: 0.75rem;
-            font-size: 0.9rem;
-        }
-        .manual {
-            border-left: 3px solid #4a90d9;
-            padding-left: 0.75rem;
-        }
+        .empty { color: #6b7280; margin-top: 2rem; }
     </style>
 </head>
 <body>
-    <h1>Weather Entries</h1>
-    <a class="btn" href="{{ url_for('add') }}">How does it feel in your backyard?</a>
-    <ul class="entry-list">
-    {% for weather in weathers %}
-        {% set feels_emoji = {'Hot': '🔥', 'Warm': '☀️', 'Cool': '🌤️', 'Cold': '🧊', 'Frigid': '🥶'} %}
-        {% set vibe_emoji = {'Sweltering': '😓', 'Hot': '🥵', 'Nice': '😊', 'Jacket': '🧥', 'Too Cold': '🌨️'} %}
-        <li class="entry">
-            <div class="entry-header">{{ weather.date }} at {{ weather.time.strftime('%H:%M') }}</div>
-            <div class="entry-sections">
-                <div class="measured">
-                    <div class="section-label">Measured</div>
-                    <span>🌡️ {{ weather.temperature }}°F</span>
-                    {% if weather.description %}<span>☁️ {{ weather.description }}</span>{% endif %}
-                    {% if weather.humidity %}<span>💧 {{ weather.humidity }}%</span>{% endif %}
-                    {% if weather.wind_speed or weather.wind_direction %}
-                        <span>💨
-                            {% if weather.wind_direction %}{{ weather.wind_direction }}{% endif %}
-                            {% if weather.wind_speed %}{{ weather.wind_speed }} mph{% endif %}
-                        </span>
-                    {% endif %}
-                    {% if weather.pressure %}<span>🔵 {{ weather.pressure }} inHg</span>{% endif %}
-                </div>
-                {% if weather.temperature_feels or weather.vibe %}
-                <div class="manual">
-                    <div class="section-label">Your Take</div>
-                    {% if weather.temperature_feels %}<span>{{ feels_emoji.get(weather.temperature_feels, '') }} {{ weather.temperature_feels }}</span>{% endif %}
-                    {% if weather.vibe %}<span>{{ vibe_emoji.get(weather.vibe, '') }} {{ weather.vibe }}</span>{% endif %}
-                </div>
-                {% endif %}
+    <header>
+        <div class="brand">Ledger<span>Line</span></div>
+        <a class="btn" href="{{ url_for('add') }}">+ New Transaction</a>
+    </header>
+    <div class="balance-card">
+        <div class="balance-label">Current Balance</div>
+        <div class="balance-amount">${{ balance }}</div>
+    </div>
+    <ul class="txn-list">
+    {% for txn in transactions %}
+        <li class="txn">
+            <div>
+                <span class="txn-desc">{{ txn.description }}</span>
+                <span class="category-pill">{{ txn.category }}</span>
+                <div class="txn-meta">{{ txn.date }} at {{ txn.time.strftime('%H:%M') }}</div>
+            </div>
+            <div class="txn-amount {{ 'credit' if txn.amount < 0 else 'charge' }}">
+                {{ '-$%.2f'|format(-txn.amount) if txn.amount < 0 else '$%.2f'|format(txn.amount) }}
             </div>
         </li>
+    {% else %}
+        <li class="empty">No activity yet. Post your first transaction.</li>
     {% endfor %}
     </ul>
 </body>

@@ -6,7 +6,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 def _database_url() -> str:
     url = os.environ.get('DATABASE_URL')
     if not url:
-        return 'sqlite:///' + os.path.join(basedir, 'weather.db')
+        return 'sqlite:///' + os.path.join(basedir, 'ledgerline.db')
     # SQLAlchemy requires the postgresql:// scheme; some hosts still use postgres://
     if url.startswith('postgres://'):
         url = url.replace('postgres://', 'postgresql://', 1)

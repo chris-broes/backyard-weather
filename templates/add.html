@@ -1,27 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Add Weather</title>
+    <title>LedgerLine — New Transaction</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <style>
+        body {
+            font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+            max-width: 480px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            color: #1a2233;
+            background: #f6f8fb;
+        }
+        .brand { font-size: 1.4rem; font-weight: 700; margin-bottom: 1.2rem; }
+        .brand span { color: #2563eb; }
+        form {
+            background: #fff;
+            border: 1px solid #e3e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        label { font-size: 0.85rem; font-weight: 600; color: #374151; }
+        input[type=text], select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.6em 0.8em;
+            margin-top: 0.3rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        input[type=submit] {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.6em 1.4em;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        input[type=submit]:hover { background: #1d4ed8; }
+        a { color: #2563eb; text-decoration: none; font-size: 0.9rem; }
+    </style>
 </head>
 <body>
-    <h1>How does it feel in your backyard?</h1>
+    <div class="brand">Ledger<span>Line</span></div>
     <form method="POST">
         {{ form.hidden_tag() }}
         <p>
-            {{ form.temperature.label }}<br>
-            {{ form.temperature() }}
+            {{ form.description.label }}<br>
+            {{ form.description(placeholder='e.g. Coffee Shop, Refund: duplicate charge') }}
         </p>
         <p>
-            {{ form.temperature_feels.label }}<br>
-            {{ form.temperature_feels() }}
+            {{ form.amount.label }}<br>
+            {{ form.amount(placeholder='e.g. 24.99 or -5.00') }}
         </p>
         <p>
-            {{ form.vibe.label }}<br>
-            {{ form.vibe() }}
+            {{ form.category.label }}<br>
+            {{ form.category() }}
         </p>
         <p>{{ form.submit() }}</p>
     </form>
-    <a href="{{ url_for('index') }}">Back to List</a>
+    <p><a href="{{ url_for('index') }}">&larr; Back to Activity</a></p>
 </body>
 </html>

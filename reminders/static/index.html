@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LedgerLine — Payment Reminders</title>
+    <style>
+        body {
+            font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: #f6f8fb;
+            color: #1a2233;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .brand {
+            margin-top: 2.5rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .brand span { color: #2563eb; }
+        h1 {
+            margin: 0.4rem 0 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #6b7280;
+        }
+        #reminder-form {
+            margin-top: 1.5em;
+            display: flex;
+            gap: 0.5em;
+        }
+        #reminder-title {
+            padding: 0.6em 0.9em;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 1rem;
+            width: 240px;
+            background: #fff;
+        }
+        #reminder-form button {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.6em 1.3em;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        #reminder-form button:hover { background: #1d4ed8; }
+        #reminder-list {
+            margin-top: 1.5em;
+            width: 380px;
+            background: #fff;
+            border: 1px solid #e3e8f0;
+            border-radius: 12px;
+            padding: 1em;
+        }
+        .reminder-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.6em;
+            background: #fff;
+            border: 1px solid #e3e8f0;
+            border-radius: 8px;
+            padding: 0.6em 0.9em;
+        }
+        .reminder-title {
+            flex: 1;
+            font-size: 1rem;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        .reminder-item button {
+            margin-left: 0.5em;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 0.3em 0.8em;
+            font-size: 0.85rem;
+            cursor: pointer;
+            background: #fff;
+            color: #374151;
+        }
+        .reminder-item button:hover { background: #eef2ff; }
+        .reminder-item button.delete {
+            color: #b91c1c;
+            border-color: #fecaca;
+        }
+        .reminder-item button.delete:hover { background: #fef2f2; }
+        @media (max-width: 500px) {
+            #reminder-list { width: 94vw; }
+        }
+    </style>
+</head>
+<body>
+    <div class="brand">Ledger<span>Line</span></div>
+    <h1>Payment Reminders</h1>
+    <form id="reminder-form">
+        <input type="text" id="reminder-title" placeholder="New reminder...">
+        <button type="submit">Add</button>
+    </form>
+    <div id="reminder-list"></div>
+    <script>
+        async function fetchReminders() {
+            const res = await fetch('/reminders');
+            const reminders = await res.json();
+            const list = document.getElementById('reminder-list');
+            list.innerHTML = '';
+            reminders.forEach(reminder => {
+                const div = document.createElement('div');
+                div.className = 'reminder-item';
+                const title = document.createElement('span');
+                title.className = 'reminder-title' + (reminder.completed ? ' completed' : '');
+                title.textContent = reminder.title;
+                div.appendChild(title);
+                const toggleBtn = document.createElement('button');
+                toggleBtn.textContent = reminder.completed ? 'Undo' : 'Done';
+                toggleBtn.onclick = async () => {
+                    await fetch(`/reminders/${reminder.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ completed: !reminder.completed })
+                    });
+                    fetchReminders();
+                };
+                div.appendChild(toggleBtn);
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete';
+                delBtn.textContent = 'Delete';
+                delBtn.onclick = async () => {
+                    await fetch(`/reminders/${reminder.id}`, { method: 'DELETE' });
+                    fetchReminders();
+                };
+                div.appendChild(delBtn);
+                list.appendChild(div);
+            });
+        }
+        document.getElementById('reminder-form').onsubmit = async e => {
+            e.preventDefault();
+            const title = document.getElementById('reminder-title').value;
+            await fetch('/reminders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+            document.getElementById('reminder-title').value = '';
+            fetchReminders();
+        };
+        fetchReminders();
+    </script>
+</body>
+</html>

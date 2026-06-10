@@ -1,22 +1,34 @@
-# Weather Tracker
+# LedgerLine
 
-A simple Flask web application to track weather inputs at home.
+A consumer fintech demo app: a transactions ledger with a running balance, plus
+a payment-reminders microservice.
 
-## Setup
+## Services
 
-1. Install dependencies: `pip install -r requirements.txt`
-2. Run the app: `python app.py`
+- **ledger** (repo root) — Flask app: post transactions (charges and
+  refunds/credits), tag categories, see a running balance. SQLite by default,
+  Postgres-ready via `DATABASE_URL`.
+- **reminders** (`reminders/`) — aiohttp microservice with a static front end
+  for payment reminders.
 
-The app will run on http://127.0.0.1:5000/
+## Run
 
-## Features
+```bash
+pip install -r requirements.txt
+FLASK_APP=app.py flask db upgrade
+SECRET_KEY=dev python app.py          # ledger on :5000
+python reminders/app.py               # reminders on :8001
+```
 
-- View list of weather entries with date and time
-- Add new weather entries manually with qualitative dropdowns for temperature feel and vibe; numeric weather details are fetched from weather.gov
-- Fetch current weather data from weather.gov local weather observations for San Francisco (station CW5988), including temperature in °F, pressure in Hg, wind speed in mph, wind direction, and humidity in %
+Or with containers:
+
+```bash
+SECRET_KEY=dev docker compose up --build   # ledger :8000, reminders :8001
+```
 
 ## Testing
 
-Run the functional test suite: `python -m pytest`
-
-This ensures the app works correctly on launch.
+```bash
+python -m pytest -q
+flake8 . --max-line-length=127 --exclude=.venv,migrations,__pycache__
+```
