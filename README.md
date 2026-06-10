@@ -20,6 +20,7 @@ spending, and get rules-based financial product recommendations.
 ```bash
 pip install -r requirements.txt
 FLASK_APP=app.py flask db upgrade
+SECRET_KEY=dev python seed.py         # optional: load a month of demo data
 SECRET_KEY=dev python app.py          # ledger on :5000
 python reminders/app.py               # reminders on :8001
 python recommendations/app.py         # recommendations on :8002
