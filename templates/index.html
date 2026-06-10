@@ -52,6 +52,12 @@
             font-size: 0.95rem;
         }
         .btn:hover { background-color: #1d4ed8; }
+        .nav-link {
+            color: #2563eb;
+            text-decoration: none;
+            margin-right: 1rem;
+            font-size: 0.95rem;
+        }
         .txn-list { list-style: none; padding: 0; margin-top: 1rem; }
         .txn {
             display: flex;
@@ -82,7 +88,10 @@
 <body>
     <header>
         <div class="brand">Ledger<span>Line</span></div>
-        <a class="btn" href="{{ url_for('add') }}">+ New Transaction</a>
+        <div>
+            <a class="nav-link" href="{{ url_for('insights') }}">Insights</a>
+            <a class="btn" href="{{ url_for('add') }}">+ New Transaction</a>
+        </div>
     </header>
     <div class="balance-card">
         <div class="balance-label">Current Balance</div>

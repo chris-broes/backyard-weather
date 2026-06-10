@@ -8,9 +8,11 @@ from datetime import datetime
 import os
 import re
 import logging
+import requests
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional
+from categorize import categorize
 from config import config_by_name
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,10 @@ if not app.config.get('SECRET_KEY'):
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+RECOMMENDATIONS_URL = os.environ.get('RECOMMENDATIONS_URL', 'http://127.0.0.1:8002')
+
 CATEGORIES = [
+    ('Auto', 'Auto-detect from description'),
     ('Dining', 'Dining'),
     ('Groceries', 'Groceries'),
     ('Transport', 'Transport'),
@@ -87,6 +92,48 @@ def index():
     return render_template('index.html', transactions=transactions, balance=balance)
 
 
+def _spending_profile(transactions: list['Transaction']) -> dict:
+    category_totals: dict[str, float] = {}
+    for txn in transactions:
+        if txn.amount > 0:
+            category_totals[txn.category] = category_totals.get(txn.category, 0.0) + txn.amount
+    return {
+        'balance': sum(txn.amount for txn in transactions),
+        'category_totals': category_totals,
+        'subscription_count': sum(1 for txn in transactions if txn.category == 'Subscriptions'),
+    }
+
+
+def _fetch_recommendations(profile: dict) -> Optional[list[dict]]:
+    try:
+        response = requests.post(
+            f"{RECOMMENDATIONS_URL}/recommendations", json=profile, timeout=3,
+        )
+        response.raise_for_status()
+        return response.json().get('recommendations', [])
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning("Recommendations service unavailable: %s", exc)
+        return None
+
+
+@app.route('/insights')
+def insights():
+    transactions = Transaction.query.all()
+    profile = _spending_profile(transactions)
+    spend_total = sum(profile['category_totals'].values())
+    categories = sorted(
+        profile['category_totals'].items(), key=lambda item: item[1], reverse=True,
+    )
+    recommendations = _fetch_recommendations(profile)
+    return render_template(
+        'insights.html',
+        categories=categories,
+        spend_total=spend_total,
+        balance=profile['balance'],
+        recommendations=recommendations,
+    )
+
+
 @app.route('/add', methods=['GET', 'POST'])
 def add():
     form = TransactionForm()
@@ -95,13 +142,17 @@ def add():
         if amount is None:
             return "Invalid amount", 400
 
+        category = form.category.data
+        if category == 'Auto':
+            category = categorize(form.description.data)
+
         now = datetime.now()
         txn = Transaction(
             date=now.date(),
             time=now.time(),
             description=form.description.data,
             amount=amount,
-            category=form.category.data,
+            category=category,
         )
         try:
             db.session.add(txn)

@@ -45,6 +45,52 @@ def test_add_transaction(client):
     assert b'Dining' in response.data
 
 
+def test_add_transaction_auto_categorizes(client):
+    response = client.post('/add', data={
+        'description': 'Netflix monthly',
+        'amount': '15.99',
+        'category': 'Auto',
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Subscriptions' in response.data
+
+
+def test_insights_renders_with_service_down(client, monkeypatch):
+    def _unavailable(*args, **kwargs):
+        import requests
+        raise requests.ConnectionError('service down')
+
+    monkeypatch.setattr('app.requests.post', _unavailable)
+    client.post('/add', data={
+        'description': 'Coffee Shop',
+        'amount': '4.50',
+        'category': 'Dining',
+    }, follow_redirects=True)
+    response = client.get('/insights')
+    assert response.status_code == 200
+    assert b'Spending by Category' in response.data
+    assert b'Dining' in response.data
+    assert b'temporarily unavailable' in response.data
+
+
+def test_insights_shows_recommendations(client, monkeypatch):
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {'recommendations': [{
+                'name': 'LedgerLine Cashback Card',
+                'tagline': '3% back on dining and groceries',
+                'reason': 'You spend a lot on dining.',
+            }]}
+
+    monkeypatch.setattr('app.requests.post', lambda *a, **k: _FakeResponse())
+    response = client.get('/insights')
+    assert response.status_code == 200
+    assert b'Cashback Card' in response.data
+
+
 def test_add_transaction_rejects_garbage_amount(client):
     response = client.post('/add', data={
         'description': 'Mystery',
