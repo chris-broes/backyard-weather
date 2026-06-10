@@ -86,10 +86,22 @@ def health():
 @app.route('/')
 def index():
     transactions = Transaction.query.order_by(
-        Transaction.date.asc(), Transaction.time.asc()
+        Transaction.date.desc(), Transaction.time.desc()
     ).all()
-    balance = sum(txn.amount for txn in transactions)
-    return render_template('index.html', transactions=transactions, balance=balance)
+    profile = _spending_profile(transactions)
+    spend_total = sum(profile['category_totals'].values())
+    categories = sorted(
+        profile['category_totals'].items(), key=lambda item: item[1], reverse=True,
+    )
+    return render_template(
+        'index.html',
+        transactions=transactions,
+        balance=profile['balance'],
+        categories=categories,
+        spend_total=spend_total,
+        recommendations=_fetch_recommendations(profile),
+        chart=_balance_chart(transactions),
+    )
 
 
 def _spending_profile(transactions: list['Transaction']) -> dict:
@@ -149,25 +161,6 @@ def _fetch_recommendations(profile: dict) -> Optional[list[dict]]:
     except (requests.RequestException, ValueError) as exc:
         logger.warning("Recommendations service unavailable: %s", exc)
         return None
-
-
-@app.route('/insights')
-def insights():
-    transactions = Transaction.query.all()
-    profile = _spending_profile(transactions)
-    spend_total = sum(profile['category_totals'].values())
-    categories = sorted(
-        profile['category_totals'].items(), key=lambda item: item[1], reverse=True,
-    )
-    recommendations = _fetch_recommendations(profile)
-    return render_template(
-        'insights.html',
-        categories=categories,
-        spend_total=spend_total,
-        balance=profile['balance'],
-        recommendations=recommendations,
-        chart=_balance_chart(transactions),
-    )
 
 
 @app.route('/add', methods=['GET', 'POST'])

@@ -55,7 +55,7 @@ def test_add_transaction_auto_categorizes(client):
     assert b'Subscriptions' in response.data
 
 
-def test_insights_renders_with_service_down(client, monkeypatch):
+def test_index_insights_render_with_service_down(client, monkeypatch):
     from datetime import date, time
     from app import Transaction
 
@@ -73,7 +73,7 @@ def test_insights_renders_with_service_down(client, monkeypatch):
         description='Coffee Shop', amount=-4.50, category='Dining',
     ))
     db.session.commit()
-    response = client.get('/insights')
+    response = client.get('/')
     assert response.status_code == 200
     assert b'Spending by Category' in response.data
     assert b'Dining' in response.data
@@ -82,7 +82,7 @@ def test_insights_renders_with_service_down(client, monkeypatch):
     assert b'temporarily unavailable' in response.data
 
 
-def test_insights_shows_recommendations(client, monkeypatch):
+def test_index_shows_recommendations(client, monkeypatch):
     class _FakeResponse:
         def raise_for_status(self):
             pass
@@ -95,9 +95,31 @@ def test_insights_shows_recommendations(client, monkeypatch):
             }]}
 
     monkeypatch.setattr('app.requests.post', lambda *a, **k: _FakeResponse())
-    response = client.get('/insights')
+    response = client.get('/')
     assert response.status_code == 200
     assert b'Cashback Card' in response.data
+
+
+def test_index_orders_newest_first(client, monkeypatch):
+    from datetime import date, time
+    from app import Transaction
+
+    def _unavailable(*args, **kwargs):
+        import requests
+        raise requests.ConnectionError('service down')
+
+    monkeypatch.setattr('app.requests.post', _unavailable)
+    db.session.add(Transaction(
+        date=date(2026, 6, 1), time=time(9, 0),
+        description='Older Entry', amount=-10.00, category='Other',
+    ))
+    db.session.add(Transaction(
+        date=date(2026, 6, 5), time=time(9, 0),
+        description='Newer Entry', amount=-10.00, category='Other',
+    ))
+    db.session.commit()
+    body = client.get('/').data
+    assert body.index(b'Newer Entry') < body.index(b'Older Entry')
 
 
 def test_add_transaction_rejects_garbage_amount(client):

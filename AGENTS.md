@@ -6,9 +6,10 @@ Project context for Factory Droid (and any coding agent) working in this repo.
 **LedgerLine**, a consumer fintech app (personal finance / payments), built as
 three small services:
 
-- **ledger** (repo root) — Flask web app: a transactions ledger with manual
-  entry, keyword auto-categorization (`categorize.py`), a running balance, and
-  a spending-insights page (`/insights`). Persistence is SQLite
+- **ledger** (repo root) — Flask web app: a single-page dashboard with a
+  running balance, balance-over-time chart, newest-first activity feed,
+  spending breakdown, and product recommendations; manual entry with keyword
+  auto-categorization (`categorize.py`). Persistence is SQLite
   (`ledgerline.db`), Postgres-ready via `DATABASE_URL`.
 - **reminders** (`reminders/`) — aiohttp microservice + static front end for
   payment reminders (create, complete, delete).
@@ -30,7 +31,7 @@ Usability and correctness of money math are the product's differentiators.
 
 ## Key files
 - `app.py` — ledger service: `Transaction` model, routes (`/`, `/add`,
-  `/insights`, `/health`), amount parsing, recommendations client.
+  `/health`), amount parsing, recommendations client, balance chart.
 - `categorize.py` — keyword rules for auto-categorization (order-sensitive).
 - `config.py` — env-driven config; supports `DATABASE_URL` (sqlite default,
   Postgres-ready).
@@ -60,7 +61,7 @@ Usability and correctness of money math are the product's differentiators.
 - The reminders and recommendations services hold state in memory by design
   (demo scope); do not add databases to them unless a ticket explicitly asks.
 - The ledger must degrade gracefully when the recommendations service is down:
-  `/insights` still renders, with recommendations marked unavailable.
+  the dashboard still renders, with recommendations marked unavailable.
 - Recommendations are rules-based and explainable: every recommendation carries
   a human-readable `reason` derived from the user's own numbers.
 - Cross-service calls go through env-configured URLs (`RECOMMENDATIONS_URL`);
