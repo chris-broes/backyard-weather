@@ -59,7 +59,7 @@ class TransactionForm(FlaskForm):
         validators=[DataRequired(), Length(max=200)],
     )
     amount = StringField(
-        'Amount (USD — use a minus sign for refunds/credits, e.g. -5.00)',
+        'Amount (USD — purchases negative, income/credits positive, e.g. -24.99 or 1450.00)',
         validators=[DataRequired(), Length(max=20)],
     )
     category = SelectField('Category', choices=CATEGORIES, validators=[DataRequired()])
@@ -95,12 +95,47 @@ def index():
 def _spending_profile(transactions: list['Transaction']) -> dict:
     category_totals: dict[str, float] = {}
     for txn in transactions:
-        if txn.amount > 0:
-            category_totals[txn.category] = category_totals.get(txn.category, 0.0) + txn.amount
+        if txn.amount < 0:
+            category_totals[txn.category] = category_totals.get(txn.category, 0.0) - txn.amount
     return {
         'balance': sum(txn.amount for txn in transactions),
         'category_totals': category_totals,
         'subscription_count': sum(1 for txn in transactions if txn.category == 'Subscriptions'),
+    }
+
+
+def _balance_chart(transactions: list['Transaction']) -> Optional[dict]:
+    ordered = sorted(transactions, key=lambda txn: (txn.date, txn.time))
+    if len(ordered) < 2:
+        return None
+
+    series: list[tuple] = []
+    running = 0.0
+    for txn in ordered:
+        running += txn.amount
+        series.append((txn.date, running))
+
+    width, height, pad = 640, 180, 14
+    values = [value for _, value in series]
+    low = min(min(values), 0.0)
+    high = max(max(values), 0.0)
+    span = (high - low) or 1.0
+    last_index = len(series) - 1
+
+    points = []
+    for i, (_, value) in enumerate(series):
+        x = pad + i * (width - 2 * pad) / last_index
+        y = height - pad - (value - low) * (height - 2 * pad) / span
+        points.append(f"{x:.1f},{y:.1f}")
+
+    zero_y = height - pad - (0.0 - low) * (height - 2 * pad) / span
+    return {
+        'points': ' '.join(points),
+        'zero_y': round(zero_y, 1),
+        'low': low,
+        'high': high,
+        'start': series[0][0],
+        'end': series[-1][0],
     }
 
 
@@ -131,6 +166,7 @@ def insights():
         spend_total=spend_total,
         balance=profile['balance'],
         recommendations=recommendations,
+        chart=_balance_chart(transactions),
     )
 
 

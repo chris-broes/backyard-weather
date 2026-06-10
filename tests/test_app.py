@@ -35,14 +35,14 @@ def test_health(client):
 
 def test_add_transaction(client):
     response = client.post('/add', data={
-        'description': 'Coffee Shop',
-        'amount': '4.50',
-        'category': 'Dining',
+        'description': 'ACME Corp payroll',
+        'amount': '1450.00',
+        'category': 'Income',
     }, follow_redirects=True)
     assert response.status_code == 200
-    assert b'Coffee Shop' in response.data
-    assert b'$4.50' in response.data
-    assert b'Dining' in response.data
+    assert b'ACME Corp payroll' in response.data
+    assert b'+$1450.00' in response.data
+    assert b'Income' in response.data
 
 
 def test_add_transaction_auto_categorizes(client):
@@ -56,20 +56,29 @@ def test_add_transaction_auto_categorizes(client):
 
 
 def test_insights_renders_with_service_down(client, monkeypatch):
+    from datetime import date, time
+    from app import Transaction
+
     def _unavailable(*args, **kwargs):
         import requests
         raise requests.ConnectionError('service down')
 
     monkeypatch.setattr('app.requests.post', _unavailable)
-    client.post('/add', data={
-        'description': 'Coffee Shop',
-        'amount': '4.50',
-        'category': 'Dining',
-    }, follow_redirects=True)
+    db.session.add(Transaction(
+        date=date(2026, 6, 1), time=time(9, 0),
+        description='ACME Corp payroll', amount=1450.00, category='Income',
+    ))
+    db.session.add(Transaction(
+        date=date(2026, 6, 2), time=time(8, 30),
+        description='Coffee Shop', amount=-4.50, category='Dining',
+    ))
+    db.session.commit()
     response = client.get('/insights')
     assert response.status_code == 200
     assert b'Spending by Category' in response.data
     assert b'Dining' in response.data
+    assert b'Balance Over Time' in response.data
+    assert b'polyline' in response.data
     assert b'temporarily unavailable' in response.data
 
 

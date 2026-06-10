@@ -49,10 +49,12 @@ Usability and correctness of money math are the product's differentiators.
 - Don't run Flask with `debug=True` in committed code.
 
 ## Domain notes
-- Amounts are USD floats in the model; **negative = credit/refund, positive =
-  charge**. Sign integrity is critical: a dropped minus sign corrupts balances.
-- Display: charges as `$X.XX`, credits as `-$X.XX` (rendered green). Balance is
-  the signed sum of all transactions.
+- Amounts are USD floats in the model; **negative = purchase/debit (draws down
+  the balance), positive = income/credit (increases it)**. Sign integrity is
+  critical: a dropped minus sign corrupts balances.
+- Display: purchases as `-$X.XX`, income/credits as `+$X.XX` (rendered green).
+  Balance is the signed sum of all transactions; the insights chart tracks the
+  cumulative balance over time.
 - Reminders are intentionally simple: `title` + `completed`. Validate input at
   the API boundary; reject reminders without a meaningful title.
 - The reminders and recommendations services hold state in memory by design

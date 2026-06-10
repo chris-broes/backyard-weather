@@ -105,8 +105,8 @@
                 <span class="category-pill">{{ txn.category }}</span>
                 <div class="txn-meta">{{ txn.date }} at {{ txn.time.strftime('%H:%M') }}</div>
             </div>
-            <div class="txn-amount {{ 'credit' if txn.amount < 0 else 'charge' }}">
-                {{ '-$%.2f'|format(-txn.amount) if txn.amount < 0 else '$%.2f'|format(txn.amount) }}
+            <div class="txn-amount {{ 'credit' if txn.amount > 0 else 'charge' }}">
+                {{ '+$%.2f'|format(txn.amount) if txn.amount > 0 else '-$%.2f'|format(-txn.amount) }}
             </div>
         </li>
     {% else %}
