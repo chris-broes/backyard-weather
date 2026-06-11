@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ledgerline-config
+  namespace: ledgerline
+data:
+  FLASK_ENV: "production"
+  # Kubernetes DNS: <service-name>.<namespace>.svc.cluster.local
+  RECOMMENDATIONS_URL: "http://recommendations-svc.ledgerline.svc.cluster.local:8002"

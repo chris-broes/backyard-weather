@@ -1,0 +1,35 @@
+# GKE Ingress — provisions a Google Cloud L7 load balancer.
+# Replace hosts with your actual domain names.
+# For HTTPS, provision a ManagedCertificate resource and annotate accordingly.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ledgerline-ingress
+  namespace: ledgerline
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    # Uncomment to enable Google-managed TLS:
+    # networking.gke.io/managed-certificates: ledgerline-cert
+    # kubernetes.io/ingress.allow-http: "false"
+spec:
+  rules:
+    - host: ledger.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ledger-svc
+                port:
+                  number: 8000
+    - host: reminders.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: reminders-svc
+                port:
+                  number: 8001

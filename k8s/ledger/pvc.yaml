@@ -1,0 +1,15 @@
+# SQLite-backed persistent volume for the ledger database.
+# For production, replace SQLite with Cloud SQL (PostgreSQL) and remove this PVC.
+# Set DATABASE_URL in the secret to point to Cloud SQL via the Cloud SQL Auth Proxy.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ledger-db-pvc
+  namespace: ledgerline
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard-rwo   # GKE default; change to regional-pd for HA
+  resources:
+    requests:
+      storage: 1Gi

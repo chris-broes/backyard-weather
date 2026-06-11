@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-svc
+  namespace: ledgerline
+spec:
+  selector:
+    app: ledger
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP

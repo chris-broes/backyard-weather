@@ -1,0 +1,44 @@
+# Image: build and push before applying.
+#   docker build -t REGION-docker.pkg.dev/PROJECT_ID/ledgerline/recommendations:latest ./recommendations
+#   docker push REGION-docker.pkg.dev/PROJECT_ID/ledgerline/recommendations:latest
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendations
+  namespace: ledgerline
+  labels:
+    app: recommendations
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: recommendations
+  template:
+    metadata:
+      labels:
+        app: recommendations
+    spec:
+      containers:
+        - name: recommendations
+          image: REGION-docker.pkg.dev/PROJECT_ID/ledgerline/recommendations:latest
+          ports:
+            - containerPort: 8002
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 30
